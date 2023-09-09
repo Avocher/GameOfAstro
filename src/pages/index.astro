@@ -1,0 +1,81 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Welcome to Astro.">
+  <main>
+    <canvas></canvas>
+  </main>
+</Layout>
+
+<script>
+  import { CellFactory, CellState } from "../CellFactory";
+  import { getNewCellState } from "../GameOfLife";
+  import { State } from "../State";
+
+  const dim = document.body.getBoundingClientRect();
+
+  console.log(dim);
+
+  const canvas = document.querySelector("canvas")!;
+  canvas.width = dim.width;
+  canvas.height = dim.height;
+  const cellFactory = new CellFactory(canvas);
+  const color = "lightgreen";
+
+  const stateA = new State([cellFactory.maxCellX, cellFactory.maxCellY]);
+  const stateB = new State([cellFactory.maxCellX, cellFactory.maxCellY]);
+
+  let activeState = stateA;
+  let inactiveState = stateB;
+
+  for (let i = 0; i < activeState.length; i++) {
+    if (Math.random() > 0.9) {
+      const [x, y] = activeState.indexToPos(i);
+      activeState.set(x, y, CellState.Alive);
+    }
+  }
+
+  for (let i = 0; i < activeState.length; i++) {
+    const [x, y] = activeState.indexToPos(i);
+    if (activeState.get(x, y) === CellState.Alive) {
+      cellFactory.createCell(x, y, color);
+    }
+  }
+
+  const renderLoop = () => {
+    cellFactory.clear();
+
+    for (let i = 0; i < activeState.length; i++) {
+      const [x, y] = activeState.indexToPos(i);
+      const newCellState = getNewCellState(activeState, i, x, y);
+
+      if (newCellState === CellState.Alive) {
+        inactiveState.setAt(i, newCellState);
+        cellFactory.createCell(x, y, color);
+      }
+    }
+
+    cellFactory.draw();
+
+    [activeState, inactiveState] = [inactiveState, activeState];
+
+    inactiveState.clear();
+
+    requestAnimationFrame(renderLoop);
+  };
+
+  renderLoop();
+</script>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    height: 100vh;
+  }
+  canvas {
+    /* image-rendering: pixelated; */
+  }
+</style>
